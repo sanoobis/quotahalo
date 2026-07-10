@@ -123,6 +123,10 @@ function bindEvents() {
     saveSetting({ miniLimits: event.target.value });
   });
 
+  $('miniLayoutSetting').addEventListener('change', (event) => {
+    saveSetting({ miniLayout: event.target.value });
+  });
+
   $('opacitySetting').addEventListener('input', (event) => {
     $('opacityValue').textContent = `${event.target.value}%`;
     clearTimeout(state.opacityTimer);
@@ -158,6 +162,7 @@ function applySettings(settings) {
   elements.app.dataset.theme = settings.theme;
   elements.app.dataset.accent = settings.accent;
   elements.app.dataset.miniLimits = settings.miniLimits;
+  elements.app.dataset.miniLayout = settings.miniLayout;
   document.body.classList.toggle('compact', settings.displayMode === 'compact');
   document.body.classList.toggle('mini', settings.displayMode === 'mini');
   elements.pinButton.classList.toggle('active', settings.alwaysOnTop);
@@ -171,6 +176,7 @@ function applySettings(settings) {
   $('launchSetting').checked = settings.launchAtLogin;
   $('refreshSetting').value = String(settings.refreshMs);
   $('miniLimitsSetting').value = settings.miniLimits;
+  $('miniLayoutSetting').value = settings.miniLayout;
   $('opacitySetting').value = String(Math.round(settings.opacity * 100));
   $('opacityValue').textContent = `${Math.round(settings.opacity * 100)}%`;
   elements.sourcePath.textContent = settings.sourceDir;
@@ -264,6 +270,8 @@ function renderSnapshot(snapshot) {
   elements.planBadge.textContent = formatPlan(limits?.planType);
   elements.miniPrimary.textContent = limits?.primary ? formatPercent(limits.primary.usedPercent) : '—';
   elements.miniSecondary.textContent = limits?.secondary ? formatPercent(limits.secondary.usedPercent) : '—';
+  elements.miniPrimary.parentElement.style.setProperty('--progress', clamp(limits?.primary?.usedPercent || 0, 0, 100).toFixed(2));
+  elements.miniSecondary.parentElement.style.setProperty('--progress', clamp(limits?.secondary?.usedPercent || 0, 0, 100).toFixed(2));
   renderLimit('primary', limits?.primary);
   renderLimit('secondary', limits?.secondary);
 

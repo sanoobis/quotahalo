@@ -11,6 +11,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   minimizeToTray: true,
   displayMode: 'full',
   miniLimits: 'both',
+  miniLayout: 'context-focus',
   opacity: 1,
   refreshMs: 5000,
   theme: 'midnight',
@@ -65,6 +66,7 @@ function sanitizeSettings(candidate) {
   const accents = ['mint', 'violet', 'cyan', 'amber'];
   const displayModes = Object.keys(DISPLAY_MODES);
   const miniLimitModes = ['both', 'primary', 'secondary'];
+  const miniLayouts = ['context-focus', 'equal'];
   const opacity = Math.min(1, Math.max(0.65, Number(candidate.opacity) || 1));
 
   return {
@@ -73,6 +75,7 @@ function sanitizeSettings(candidate) {
     minimizeToTray: candidate.minimizeToTray !== false,
     displayMode: displayModes.includes(candidate.displayMode) ? candidate.displayMode : 'full',
     miniLimits: miniLimitModes.includes(candidate.miniLimits) ? candidate.miniLimits : 'both',
+    miniLayout: miniLayouts.includes(candidate.miniLayout) ? candidate.miniLayout : 'context-focus',
     opacity,
     refreshMs: refreshOptions.includes(Number(candidate.refreshMs)) ? Number(candidate.refreshMs) : 5000,
     theme: themes.includes(candidate.theme) ? candidate.theme : 'midnight',
@@ -386,6 +389,8 @@ app.whenReady().then(() => {
   loadSettings();
   const requestedMode = commandLineValue('display-mode');
   if (DISPLAY_MODES[requestedMode]) settings.displayMode = requestedMode;
+  const requestedMiniLayout = commandLineValue('mini-layout');
+  if (['context-focus', 'equal'].includes(requestedMiniLayout)) settings.miniLayout = requestedMiniLayout;
   reader = new TokenReader({ sourceDir: settings.sourceDir });
   registerIpc();
   createWindow();

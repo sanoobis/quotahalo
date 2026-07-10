@@ -1649,6 +1649,82 @@ body.mini .mini-side strong {
   border-top: 0;
 }
 
+/* Equal Mini layout: context and each enabled quota receive the same column. */
+body.mini .app-shell[data-mini-layout="equal"] .hero-card {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  justify-items: center;
+  padding-inline: 13px;
+}
+
+body.mini .app-shell[data-mini-layout="equal"][data-mini-limits="primary"] .hero-card,
+body.mini .app-shell[data-mini-layout="equal"][data-mini-limits="secondary"] .hero-card {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+body.mini .app-shell[data-mini-layout="equal"] .hero-copy {
+  display: none;
+}
+
+body.mini .app-shell[data-mini-layout="equal"] .context-ring {
+  justify-self: center;
+}
+
+body.mini .app-shell[data-mini-layout="equal"] .mini-side {
+  display: contents;
+}
+
+body.mini .app-shell[data-mini-layout="equal"] .mini-limit {
+  --progress: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  align-self: center;
+  justify-content: center;
+  flex-direction: column-reverse;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  gap: 1px;
+  border: 0;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent) calc(var(--progress) * 1%), rgba(255, 255, 255, 0.06) 0);
+  box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.07);
+}
+
+body.mini .app-shell[data-mini-layout="equal"] .mini-limit::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  background: var(--panel-solid);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
+
+body.mini .app-shell[data-mini-layout="equal"] .mini-limit::after {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border: 1px dashed rgba(var(--accent-rgb), 0.16);
+  border-radius: 50%;
+}
+
+body.mini .app-shell[data-mini-layout="equal"] .mini-limit span,
+body.mini .app-shell[data-mini-layout="equal"] .mini-limit strong {
+  position: relative;
+  z-index: 1;
+}
+
+body.mini .app-shell[data-mini-layout="equal"] .mini-limit span {
+  font-size: 5px;
+  letter-spacing: .1em;
+}
+
+body.mini .app-shell[data-mini-layout="equal"] .mini-limit strong {
+  font-size: 14px;
+  font-weight: 630;
+  letter-spacing: -.055em;
+}
+
 @media (max-width: 420px) {
   .dashboard {
     padding: 12px;

@@ -32,5 +32,8 @@ test('renderer exposes all three display modes and a draggable app surface', () 
   assert.match(css, /\.app-shell[\s\S]*-webkit-app-region:\s*drag/);
   assert.match(css, /body\.mini/);
   assert.match(html, /id="miniLimitsSetting"/);
+  assert.match(html, /id="miniLayoutSetting"/);
   assert.match(html, /5-hour \+ Weekly/);
+  assert.match(html, /Equal indicators/);
+  assert.match(css, /data-mini-layout="equal"/);
 });
