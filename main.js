@@ -23,7 +23,7 @@ const DEFAULT_SETTINGS = Object.freeze({
 const DISPLAY_MODES = Object.freeze({
   full: { width: 470, height: 748, minWidth: 360, minHeight: 278 },
   compact: { width: 408, height: 280, minWidth: 360, minHeight: 240 },
-  mini: { width: 360, height: 118, minWidth: 320, minHeight: 110 },
+  mini: { width: 300, height: 118, minWidth: 280, minHeight: 110 },
 });
 
 let mainWindow = null;
@@ -91,7 +91,7 @@ function validBounds(bounds) {
     && Number.isFinite(bounds.y)
     && Number.isFinite(bounds.width)
     && Number.isFinite(bounds.height)
-    && bounds.width >= 320
+    && bounds.width >= 280
     && bounds.height >= 110;
 }
 

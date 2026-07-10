@@ -26,6 +26,7 @@ test('repository contains the complete GPL license and trademark policy', () => 
 test('renderer exposes all three display modes and a draggable app surface', () => {
   const html = fs.readFileSync(path.join(root, 'renderer', 'index.html'), 'utf8');
   const css = fs.readFileSync(path.join(root, 'renderer', 'styles.css'), 'utf8');
+  const main = fs.readFileSync(path.join(root, 'main.js'), 'utf8');
   for (const mode of ['full', 'compact', 'mini']) {
     assert.match(html, new RegExp(`data-display-mode="${mode}"`));
   }
@@ -36,4 +37,5 @@ test('renderer exposes all three display modes and a draggable app surface', () 
   assert.match(html, /5-hour \+ Weekly/);
   assert.match(html, /Equal indicators/);
   assert.match(css, /data-mini-layout="equal"/);
+  assert.match(main, /mini:\s*\{\s*width:\s*300/);
 });
