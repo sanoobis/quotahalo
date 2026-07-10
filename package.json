@@ -1,0 +1,53 @@
+{
+  "name": "quotahalo",
+  "version": "1.0.0",
+  "description": "A private, local token and quota monitor for AI coding sessions.",
+  "main": "main.js",
+  "author": "sanoobis",
+  "license": "GPL-3.0-only",
+  "homepage": "https://github.com/sanoobis/quotahalo#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sanoobis/quotahalo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sanoobis/quotahalo/issues"
+  },
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "test": "node --test",
+    "icon": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-icon.ps1",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.sanoobis.quotahalo",
+    "productName": "QuotaHalo",
+    "artifactName": "QuotaHalo-${version}-${arch}.${ext}",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "renderer/**/*",
+      "assets/**/*",
+      "package.json",
+      "LICENSE",
+      "NOTICE",
+      "TRADEMARKS.md"
+    ],
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "icon": "assets/icon.png"
+    }
+  },
+  "devDependencies": {
+    "electron": "^43.1.0",
+    "electron-builder": "^26.0.12"
+  }
+}

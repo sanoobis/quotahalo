@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run dist
+      - name: Create checksum
+        shell: pwsh
+        run: |
+          $file = Get-ChildItem release\QuotaHalo-*.exe | Select-Object -First 1
+          $hash = (Get-FileHash -Algorithm SHA256 $file.FullName).Hash.ToLower()
+          "$hash  $($file.Name)" | Set-Content -Encoding ascii release\SHA256SUMS.txt
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create $env:GITHUB_REF_NAME `
+            release\QuotaHalo-*.exe `
+            release\SHA256SUMS.txt `
+            --generate-notes `
+            --title "QuotaHalo $env:GITHUB_REF_NAME"
