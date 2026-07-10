@@ -268,10 +268,12 @@ function renderSnapshot(snapshot) {
 
   const limits = current.rateLimits;
   elements.planBadge.textContent = formatPlan(limits?.planType);
-  elements.miniPrimary.textContent = limits?.primary ? formatPercent(limits.primary.usedPercent) : '—';
-  elements.miniSecondary.textContent = limits?.secondary ? formatPercent(limits.secondary.usedPercent) : '—';
-  elements.miniPrimary.parentElement.style.setProperty('--progress', clamp(limits?.primary?.usedPercent || 0, 0, 100).toFixed(2));
-  elements.miniSecondary.parentElement.style.setProperty('--progress', clamp(limits?.secondary?.usedPercent || 0, 0, 100).toFixed(2));
+  const primaryLeft = quotaLeft(limits?.primary);
+  const secondaryLeft = quotaLeft(limits?.secondary);
+  elements.miniPrimary.textContent = primaryLeft === null ? '—' : formatPercent(primaryLeft);
+  elements.miniSecondary.textContent = secondaryLeft === null ? '—' : formatPercent(secondaryLeft);
+  elements.miniPrimary.parentElement.style.setProperty('--progress', (primaryLeft || 0).toFixed(2));
+  elements.miniSecondary.parentElement.style.setProperty('--progress', (secondaryLeft || 0).toFixed(2));
   renderLimit('primary', limits?.primary);
   renderLimit('secondary', limits?.secondary);
 
@@ -306,13 +308,20 @@ function renderLimit(prefix, limit) {
   }
 
   const used = clamp(limit.usedPercent, 0, 100);
+  const left = 100 - used;
   label.textContent = formatWindow(limit.windowMinutes, prefix);
-  percent.textContent = `${formatPercent(used)} used`;
-  track.style.width = `${used}%`;
-  track.classList.toggle('warning', used >= 80);
-  remaining.textContent = `${formatPercent(100 - used)} remaining`;
+  percent.textContent = `${formatPercent(left)} left`;
+  track.style.width = `${left}%`;
+  track.classList.toggle('warning', left <= 20);
+  remaining.textContent = `${formatPercent(left)} remaining`;
   reset.dataset.resetAt = String(limit.resetsAt || '');
   reset.textContent = resetText(limit.resetsAt);
+}
+
+function quotaLeft(limit) {
+  return limit && Number.isFinite(limit.usedPercent)
+    ? 100 - clamp(limit.usedPercent, 0, 100)
+    : null;
 }
 
 function renderChart(activity, contextMax) {
