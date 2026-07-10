@@ -1651,14 +1651,16 @@ body.mini .mini-side strong {
 
 /* Equal Mini layout: context and each enabled quota receive the same column. */
 body.mini .app-shell[data-mini-layout="equal"] .hero-card {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, 48px);
+  column-gap: 11px;
   justify-items: center;
-  padding-inline: 13px;
+  justify-content: center;
+  padding-inline: 0;
 }
 
 body.mini .app-shell[data-mini-layout="equal"][data-mini-limits="primary"] .hero-card,
 body.mini .app-shell[data-mini-layout="equal"][data-mini-limits="secondary"] .hero-card {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, 48px);
 }
 
 body.mini .app-shell[data-mini-layout="equal"] .hero-copy {

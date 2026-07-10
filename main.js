@@ -26,6 +26,8 @@ const DISPLAY_MODES = Object.freeze({
   mini: { width: 300, height: 118, minWidth: 280, minHeight: 110 },
 });
 
+const EQUAL_MINI_MODE = Object.freeze({ width: 202, height: 118, minWidth: 196, minHeight: 110 });
+
 let mainWindow = null;
 let tray = null;
 let isQuitting = false;
@@ -91,12 +93,12 @@ function validBounds(bounds) {
     && Number.isFinite(bounds.y)
     && Number.isFinite(bounds.width)
     && Number.isFinite(bounds.height)
-    && bounds.width >= 280
+    && bounds.width >= 196
     && bounds.height >= 110;
 }
 
 function windowOptions() {
-  const mode = DISPLAY_MODES[settings.displayMode];
+  const mode = displayModePreset(settings.displayMode);
   const stored = settings.windowBounds;
   const restoreCustomSize = settings.displayMode === 'full';
 
@@ -125,6 +127,11 @@ function windowOptions() {
       devTools: process.argv.includes('--dev'),
     },
   };
+}
+
+function displayModePreset(displayMode) {
+  if (displayMode === 'mini' && settings.miniLayout === 'equal') return EQUAL_MINI_MODE;
+  return DISPLAY_MODES[displayMode];
 }
 
 function iconPath() {
@@ -264,7 +271,7 @@ function setDisplayMode(displayMode) {
   settings.displayMode = displayMode;
   saveSettings();
   if (mainWindow) {
-    const mode = DISPLAY_MODES[displayMode];
+    const mode = displayModePreset(displayMode);
     mainWindow.setMinimumSize(mode.minWidth, mode.minHeight);
     mainWindow.setBounds({ ...mainWindow.getBounds(), width: mode.width, height: mode.height }, true);
     mainWindow.webContents.send('quotahalo:settings-changed', publicSettings());
@@ -309,8 +316,10 @@ function registerIpc() {
 
   ipcMain.handle('quotahalo:update-settings', (_event, patch) => {
     const displayChanged = Object.hasOwn(patch || {}, 'displayMode') && patch.displayMode !== settings.displayMode;
+    const miniLayoutChanged = Object.hasOwn(patch || {}, 'miniLayout') && patch.miniLayout !== settings.miniLayout;
     const updated = updateSettings(patch || {});
     if (displayChanged) setDisplayMode(patch.displayMode);
+    else if (miniLayoutChanged && settings.displayMode === 'mini') setDisplayMode('mini');
     mainWindow?.webContents.send('quotahalo:settings-changed', updated);
     return updated;
   });

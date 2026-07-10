@@ -1,6 +1,6 @@
 {
   "name": "quotahalo",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "A private, local token and quota monitor for AI coding sessions.",
   "main": "main.js",
   "author": "sanoobis",
