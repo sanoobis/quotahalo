@@ -12,6 +12,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   displayMode: 'full',
   miniLimits: 'both',
   miniLayout: 'context-focus',
+  miniContext: true,
   opacity: 1,
   refreshMs: 5000,
   theme: 'midnight',
@@ -78,6 +79,7 @@ function sanitizeSettings(candidate) {
     displayMode: displayModes.includes(candidate.displayMode) ? candidate.displayMode : 'full',
     miniLimits: miniLimitModes.includes(candidate.miniLimits) ? candidate.miniLimits : 'both',
     miniLayout: miniLayouts.includes(candidate.miniLayout) ? candidate.miniLayout : 'context-focus',
+    miniContext: candidate.miniContext !== false,
     opacity,
     refreshMs: refreshOptions.includes(Number(candidate.refreshMs)) ? Number(candidate.refreshMs) : 5000,
     theme: themes.includes(candidate.theme) ? candidate.theme : 'midnight',
@@ -130,7 +132,7 @@ function windowOptions() {
 }
 
 function displayModePreset(displayMode) {
-  if (displayMode === 'mini' && settings.miniLayout === 'equal') return EQUAL_MINI_MODE;
+  if (displayMode === 'mini' && (settings.miniLayout === 'equal' || !settings.miniContext)) return EQUAL_MINI_MODE;
   return DISPLAY_MODES[displayMode];
 }
 
@@ -146,6 +148,12 @@ function createWindow() {
   const capturePath = commandLineValue('capture');
   if (capturePath) {
     mainWindow.webContents.once('did-finish-load', () => {
+      if (process.argv.includes('--open-settings')) {
+        mainWindow.webContents.executeJavaScript("document.getElementById('settingsButton')?.click()");
+      }
+      if (process.argv.includes('--scroll-settings')) {
+        mainWindow.webContents.executeJavaScript("setTimeout(() => { const panel = document.querySelector('.settings-scroll'); if (panel) panel.scrollTop = panel.scrollHeight; }, 150)");
+      }
       setTimeout(async () => {
         try {
           const image = await mainWindow.webContents.capturePage();
@@ -317,9 +325,10 @@ function registerIpc() {
   ipcMain.handle('quotahalo:update-settings', (_event, patch) => {
     const displayChanged = Object.hasOwn(patch || {}, 'displayMode') && patch.displayMode !== settings.displayMode;
     const miniLayoutChanged = Object.hasOwn(patch || {}, 'miniLayout') && patch.miniLayout !== settings.miniLayout;
+    const miniContextChanged = Object.hasOwn(patch || {}, 'miniContext') && patch.miniContext !== settings.miniContext;
     const updated = updateSettings(patch || {});
     if (displayChanged) setDisplayMode(patch.displayMode);
-    else if (miniLayoutChanged && settings.displayMode === 'mini') setDisplayMode('mini');
+    else if ((miniLayoutChanged || miniContextChanged) && settings.displayMode === 'mini') setDisplayMode('mini');
     mainWindow?.webContents.send('quotahalo:settings-changed', updated);
     return updated;
   });
@@ -400,6 +409,8 @@ app.whenReady().then(() => {
   if (DISPLAY_MODES[requestedMode]) settings.displayMode = requestedMode;
   const requestedMiniLayout = commandLineValue('mini-layout');
   if (['context-focus', 'equal'].includes(requestedMiniLayout)) settings.miniLayout = requestedMiniLayout;
+  const requestedMiniContext = commandLineValue('mini-context');
+  if (['true', 'false'].includes(requestedMiniContext)) settings.miniContext = requestedMiniContext === 'true';
   reader = new TokenReader({ sourceDir: settings.sourceDir });
   registerIpc();
   createWindow();

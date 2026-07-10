@@ -34,9 +34,12 @@ test('renderer exposes all three display modes and a draggable app surface', () 
   assert.match(css, /body\.mini/);
   assert.match(html, /id="miniLimitsSetting"/);
   assert.match(html, /id="miniLayoutSetting"/);
+  assert.match(html, /id="miniContextSetting"/);
   assert.match(html, /5-hour \+ Weekly/);
   assert.match(html, /Equal indicators/);
   assert.match(css, /data-mini-layout="equal"/);
+  assert.match(css, /data-mini-context="false"/);
+  assert.match(css, /settings-panel[\s\S]*-webkit-app-region:\s*no-drag/);
   assert.match(main, /mini:\s*\{\s*width:\s*300/);
   assert.match(main, /EQUAL_MINI_MODE[^\n]*width:\s*202/);
   assert.match(fs.readFileSync(path.join(root, 'renderer', 'app.js'), 'utf8'), /percent\.textContent = `\$\{formatPercent\(left\)\} left`/);

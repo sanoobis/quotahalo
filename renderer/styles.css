@@ -370,7 +370,7 @@ a,
 .eyebrow,
 .section-kicker {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 750;
   letter-spacing: 0.115em;
   text-transform: uppercase;
@@ -605,7 +605,7 @@ a,
 .settings-header h2 {
   margin: 3px 0 0;
   color: var(--text);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 620;
   letter-spacing: -0.02em;
 }
@@ -617,7 +617,7 @@ a,
   background: rgba(var(--accent-rgb), 0.07);
   border: 1px solid rgba(var(--accent-rgb), 0.13);
   border-radius: 5px;
-  font-size: 7px;
+  font-size: 8px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -636,12 +636,12 @@ a,
 
 .limit-label span {
   color: var(--text-soft);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 550;
 }
 
 .limit-label strong {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 650;
 }
 
@@ -657,7 +657,7 @@ a,
 .limit-foot {
   margin-top: 5px;
   color: var(--muted);
-  font-size: 7.5px;
+  font-size: 8.5px;
 }
 
 .metric-grid {
@@ -1026,6 +1026,7 @@ a,
   visibility: hidden;
   transform: translateX(18px);
   transition: opacity 180ms ease, transform 220ms ease, visibility 180ms;
+  -webkit-app-region: no-drag;
 }
 
 .settings-panel.open {
@@ -1049,8 +1050,13 @@ a,
 }
 
 .settings-scroll {
+  min-height: 0;
+  flex: 1 1 auto;
   padding: 15px 17px 24px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  -webkit-app-region: no-drag;
 }
 
 .settings-group {
@@ -1065,7 +1071,7 @@ a,
   margin: 0;
   padding: 11px 13px 7px;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 750;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1100,7 +1106,7 @@ a,
 .setting-label strong,
 .about-group strong {
   color: var(--text);
-  font-size: 9.5px;
+  font-size: 11px;
   font-weight: 580;
 }
 
@@ -1108,7 +1114,8 @@ a,
 .setting-label small,
 .about-group small {
   color: var(--muted);
-  font-size: 7.5px;
+  font-size: 9px;
+  line-height: 1.35;
   font-weight: 400;
 }
 
@@ -1176,7 +1183,7 @@ a,
   background: transparent;
   border: 0;
   border-radius: 6px;
-  font-size: 8px;
+  font-size: 9.5px;
   cursor: pointer;
 }
 
@@ -1241,7 +1248,7 @@ a,
   background: var(--panel-hover);
   border: 1px solid var(--line-strong);
   border-radius: 7px;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .source-setting {
@@ -1663,6 +1670,19 @@ body.mini .app-shell[data-mini-layout="equal"][data-mini-limits="secondary"] .he
   grid-template-columns: repeat(2, 48px);
 }
 
+body.mini .app-shell[data-mini-context="false"] .context-ring {
+  display: none;
+}
+
+body.mini .app-shell[data-mini-layout="equal"][data-mini-context="false"] .hero-card {
+  grid-template-columns: repeat(2, 48px);
+}
+
+body.mini .app-shell[data-mini-layout="equal"][data-mini-context="false"][data-mini-limits="primary"] .hero-card,
+body.mini .app-shell[data-mini-layout="equal"][data-mini-context="false"][data-mini-limits="secondary"] .hero-card {
+  grid-template-columns: 48px;
+}
+
 body.mini .app-shell[data-mini-layout="equal"] .hero-copy {
   display: none;
 }
@@ -1717,7 +1737,7 @@ body.mini .app-shell[data-mini-layout="equal"] .mini-limit strong {
 }
 
 body.mini .app-shell[data-mini-layout="equal"] .mini-limit span {
-  font-size: 5px;
+  font-size: 6.5px;
   letter-spacing: .1em;
 }
 

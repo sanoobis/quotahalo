@@ -96,6 +96,7 @@ function bindEvents() {
 
   bindToggle('alwaysOnTopSetting', 'alwaysOnTop');
   bindToggle('traySetting', 'minimizeToTray');
+  bindToggle('miniContextSetting', 'miniContext');
   bindToggle('launchSetting', 'launchAtLogin');
 
   $('displayModeControl').addEventListener('click', async (event) => {
@@ -162,7 +163,8 @@ function applySettings(settings) {
   elements.app.dataset.theme = settings.theme;
   elements.app.dataset.accent = settings.accent;
   elements.app.dataset.miniLimits = settings.miniLimits;
-  elements.app.dataset.miniLayout = settings.miniLayout;
+  elements.app.dataset.miniLayout = settings.miniContext ? settings.miniLayout : 'equal';
+  elements.app.dataset.miniContext = String(settings.miniContext);
   document.body.classList.toggle('compact', settings.displayMode === 'compact');
   document.body.classList.toggle('mini', settings.displayMode === 'mini');
   elements.pinButton.classList.toggle('active', settings.alwaysOnTop);
@@ -177,6 +179,7 @@ function applySettings(settings) {
   $('refreshSetting').value = String(settings.refreshMs);
   $('miniLimitsSetting').value = settings.miniLimits;
   $('miniLayoutSetting').value = settings.miniLayout;
+  $('miniContextSetting').checked = settings.miniContext;
   $('opacitySetting').value = String(Math.round(settings.opacity * 100));
   $('opacityValue').textContent = `${Math.round(settings.opacity * 100)}%`;
   elements.sourcePath.textContent = settings.sourceDir;
