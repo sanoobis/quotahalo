@@ -35,6 +35,7 @@ test('renderer exposes all three display modes and a draggable app surface', () 
   assert.match(html, /id="miniLimitsSetting"/);
   assert.match(html, /id="miniLayoutSetting"/);
   assert.match(html, /id="miniContextSetting"/);
+  assert.match(html, /id="pinButton"[\s\S]*id="refreshButton"[\s\S]*id="compactButton"/);
   assert.match(html, /5-hour \+ Weekly/);
   assert.match(html, /Equal indicators/);
   assert.match(css, /data-mini-layout="equal"/);

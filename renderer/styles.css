@@ -274,6 +274,13 @@ a,
   transition: color 150ms ease, background 150ms ease, transform 150ms ease;
 }
 
+.titlebar .refresh-button {
+  width: 29px;
+  height: 29px;
+  background: transparent;
+  border: 0;
+}
+
 .icon-button:hover,
 .refresh-button:hover {
   color: var(--text);
@@ -1420,8 +1427,7 @@ body.compact .session-header h1 {
 }
 
 body.compact .session-header p,
-body.compact .eyebrow,
-body.compact .refresh-button {
+body.compact .eyebrow {
   display: none;
 }
 
@@ -1493,7 +1499,7 @@ body.mini .titlebar {
 }
 
 body.mini .brand {
-  min-width: 120px;
+  min-width: 80px;
   gap: 6px;
 }
 

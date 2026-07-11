@@ -17,6 +17,7 @@ QuotaHalo is a private, local Windows dashboard for live AI coding-session token
 - Choose whether Mini displays both quota windows or only the 5-hour/Weekly window
 - Hide the context indicator for a focused 5-hour + Weekly limits-only Mini panel
 - Drag the window from any non-interactive surface
+- Manual title-bar refresh with loading feedback
 - Always-on-top pin, system tray, remembered position, and adjustable opacity
 - Midnight, graphite, and light themes with four accent colors
 - Configurable local sessions folder and refresh interval
