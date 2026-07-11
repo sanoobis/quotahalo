@@ -44,4 +44,5 @@ test('renderer exposes all three display modes and a draggable app surface', () 
   assert.match(main, /mini:\s*\{\s*width:\s*300/);
   assert.match(main, /EQUAL_MINI_MODE[^\n]*width:\s*202/);
   assert.match(fs.readFileSync(path.join(root, 'renderer', 'app.js'), 'utf8'), /percent\.textContent = `\$\{formatPercent\(left\)\} left`/);
+  assert.match(fs.readFileSync(path.join(root, 'renderer', 'app.js'), 'utf8'), /return `\$\{relative\} · \$\{absolute\}`/);
 });

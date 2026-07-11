@@ -495,16 +495,26 @@ function formatWindow(minutes, fallback) {
 
 function resetText(epochSeconds) {
   if (!epochSeconds) return 'Reset time unavailable';
-  const difference = (epochSeconds * 1000) - Date.now();
+  const resetAt = new Date(epochSeconds * 1000);
+  const difference = resetAt.getTime() - Date.now();
   if (difference <= 0) return 'Resetting now';
 
   const totalMinutes = Math.ceil(difference / 60000);
   const days = Math.floor(totalMinutes / 1440);
   const hours = Math.floor((totalMinutes % 1440) / 60);
   const minutes = totalMinutes % 60;
-  if (days > 0) return `Resets in ${days}d ${hours}h`;
-  if (hours > 0) return `Resets in ${hours}h ${minutes}m`;
-  return `Resets in ${minutes}m`;
+  const relative = days > 0
+    ? `Resets in ${days}d ${hours}h`
+    : hours > 0
+      ? `Resets in ${hours}h ${minutes}m`
+      : `Resets in ${minutes}m`;
+  const absolute = new Intl.DateTimeFormat(undefined, {
+    ...(days > 0 ? { month: 'short', day: 'numeric' } : {}),
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(resetAt);
+  return `${relative} · ${absolute}`;
 }
 
 function relativeTime(dateValue) {

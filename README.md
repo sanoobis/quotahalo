@@ -10,7 +10,7 @@ QuotaHalo is a private, local Windows dashboard for live AI coding-session token
 
 - Current request context usage against the reported model context window
 - Session input, output, cached input, reasoning output, and total tokens
-- Remaining 5-hour and Weekly quota capacity with live reset countdowns
+- Remaining 5-hour and Weekly quota capacity with live countdowns and local reset times
 - Recent context activity and session switching
 - Full, Compact, and space-efficient Mini window modes
 - Mini mode adapts its width: tightly spaced equal Context, 5-hour, and Weekly rings, or a wider context-focused layout
