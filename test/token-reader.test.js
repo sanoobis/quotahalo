@@ -8,10 +8,14 @@ const path = require('node:path');
 
 const {
   TokenReader,
+  activeRateLimits,
   extractSessionId,
+  mergeRateLimits,
+  parseSessionFile,
   parseTokenRecords,
   readTail,
 } = require('../src/token-reader');
+const { SnapshotService } = require('../src/snapshot-service');
 
 const SESSION_ID = '019f4ccd-1d6a-7353-9564-7adc619a3359';
 
@@ -96,5 +100,111 @@ test('TokenReader returns a named live snapshot', () => {
   assert.equal(snapshot.current.total.totalTokens, 4500);
   assert.equal(snapshot.summary.discoveredSessions, 1);
 
+  fs.rmSync(directory, { recursive: true, force: true });
+});
+
+test('parseSessionFile keeps the latest available rate limits', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'quotahalo-limits-'));
+  const file = path.join(directory, `rollout-${SESSION_ID}.jsonl`);
+  const withoutLimits = JSON.parse(tokenLine(5000, 1500));
+  delete withoutLimits.payload.rate_limits;
+  fs.writeFileSync(file, [
+    JSON.stringify({ type: 'session_meta', payload: { id: SESSION_ID, cwd: 'D:\\Work\\Radar' } }),
+    tokenLine(),
+    JSON.stringify(withoutLimits),
+  ].join('\n'), 'utf8');
+
+  const session = parseSessionFile(file);
+  assert.equal(session.total.totalTokens, 5000);
+  assert.equal(session.rateLimits.primary.usedPercent, 23);
+
+  fs.rmSync(directory, { recursive: true, force: true });
+});
+
+test('mergeRateLimits restores 5-hour and weekly windows from partial updates', () => {
+  const merged = mergeRateLimits([
+    {
+      planType: 'pro',
+      primary: { usedPercent: 12, windowMinutes: 10080, resetsAt: 300 },
+      secondary: null,
+    },
+    {
+      planType: 'pro',
+      primary: { usedPercent: 35, windowMinutes: 300, resetsAt: 200 },
+      secondary: { usedPercent: 10, windowMinutes: 10080, resetsAt: 250 },
+    },
+  ]);
+
+  assert.equal(merged.primary.windowMinutes, 300);
+  assert.equal(merged.primary.usedPercent, 35);
+  assert.equal(merged.secondary.windowMinutes, 10080);
+  assert.equal(merged.secondary.usedPercent, 12);
+});
+
+test('activeRateLimits drops expired quota windows instead of showing stale data', () => {
+  const active = activeRateLimits({
+    planType: 'pro',
+    primary: { usedPercent: 90, windowMinutes: 300, resetsAt: 900 },
+    secondary: { usedPercent: 20, windowMinutes: 10080, resetsAt: 2000 },
+  }, 1000);
+
+  assert.equal(active.primary, null);
+  assert.equal(active.secondary.windowMinutes, 10080);
+});
+
+test('TokenReader keeps live data visible while a new thread warms up', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'quotahalo-switch-'));
+  const sessions = path.join(directory, 'sessions');
+  fs.mkdirSync(sessions, { recursive: true });
+  const liveId = '11111111-1111-4111-8111-111111111111';
+  const waitingId = '22222222-2222-4222-8222-222222222222';
+  const liveFile = path.join(sessions, `rollout-${liveId}.jsonl`);
+  const waitingFile = path.join(sessions, `rollout-${waitingId}.jsonl`);
+  fs.writeFileSync(liveFile, [
+    JSON.stringify({ type: 'session_meta', payload: { id: liveId, cwd: 'D:\\Work\\Live' } }),
+    tokenLine(),
+  ].join('\n'), 'utf8');
+  fs.writeFileSync(waitingFile, JSON.stringify({
+    type: 'session_meta',
+    payload: { id: waitingId, cwd: 'D:\\Work\\Waiting' },
+  }), 'utf8');
+  const now = Date.now() / 1000;
+  fs.utimesSync(liveFile, now - 10, now - 10);
+  fs.utimesSync(waitingFile, now, now);
+
+  const reader = new TokenReader({ sourceDir: sessions, indexPath: path.join(directory, 'missing-index.jsonl') });
+  const warming = reader.snapshot({ force: true });
+  assert.equal(warming.current.id, liveId);
+  assert.equal(warming.current.hasTokenData, true);
+
+  fs.appendFileSync(waitingFile, `\n${tokenLine(100, 100)}`, 'utf8');
+  const switched = reader.snapshot({ force: true });
+  assert.equal(switched.current.id, waitingId);
+  assert.equal(switched.current.hasTokenData, true);
+
+  fs.rmSync(directory, { recursive: true, force: true });
+});
+
+test('SnapshotService scans without blocking the caller event loop', async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'quotahalo-worker-'));
+  const sessions = path.join(directory, 'sessions');
+  fs.mkdirSync(sessions, { recursive: true });
+  fs.writeFileSync(path.join(sessions, `rollout-${SESSION_ID}.jsonl`), [
+    JSON.stringify({ type: 'session_meta', payload: { id: SESSION_ID, cwd: 'D:\\Work\\Worker' } }),
+    tokenLine(),
+  ].join('\n'), 'utf8');
+  const service = new SnapshotService({ sourceDir: sessions, indexPath: path.join(directory, 'missing-index.jsonl') });
+
+  const pending = service.snapshot({ force: true });
+  let yielded = false;
+  await new Promise((resolve) => setImmediate(() => {
+    yielded = true;
+    resolve();
+  }));
+  const snapshot = await pending;
+  assert.equal(yielded, true);
+  assert.equal(snapshot.current.id, SESSION_ID);
+
+  await service.close();
   fs.rmSync(directory, { recursive: true, force: true });
 });

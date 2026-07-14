@@ -3,7 +3,8 @@
 const { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, Tray } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
-const { TokenReader, defaultSessionsPath } = require('./src/token-reader');
+const { defaultSessionsPath } = require('./src/token-reader');
+const { SnapshotService } = require('./src/snapshot-service');
 
 const DEFAULT_SETTINGS = Object.freeze({
   alwaysOnTop: true,
@@ -35,6 +36,10 @@ let isQuitting = false;
 let saveBoundsTimer = null;
 let reader = null;
 let settings = { ...DEFAULT_SETTINGS };
+const isCaptureRun = process.argv.some((value) => value.startsWith('--capture='));
+const hasSingleInstanceLock = isCaptureRun || app.requestSingleInstanceLock();
+
+if (!hasSingleInstanceLock) app.quit();
 
 function configPath() {
   return path.join(app.getPath('userData'), 'settings.json');
@@ -127,6 +132,7 @@ function windowOptions() {
       nodeIntegration: false,
       sandbox: true,
       devTools: process.argv.includes('--dev'),
+      backgroundThrottling: false,
     },
   };
 }
@@ -153,6 +159,14 @@ function createWindow() {
       }
       if (process.argv.includes('--scroll-settings')) {
         mainWindow.webContents.executeJavaScript("setTimeout(() => { const panel = document.querySelector('.settings-scroll'); if (panel) panel.scrollTop = panel.scrollHeight; }, 150)");
+      }
+      if (process.argv.includes('--restore-check')) {
+        setTimeout(() => mainWindow?.minimize(), 900);
+        setTimeout(() => {
+          mainWindow?.restore();
+          mainWindow?.show();
+          mainWindow?.focus();
+        }, 2200);
       }
       setTimeout(async () => {
         try {
@@ -187,6 +201,11 @@ function createWindow() {
     mainWindow = null;
   });
 
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    console.error('QuotaHalo renderer stopped:', details.reason);
+    if (!isQuitting && mainWindow) setTimeout(() => mainWindow?.reload(), 350);
+  });
+
   const queueBoundsSave = () => {
     if (!mainWindow || mainWindow.isMaximized() || mainWindow.isMinimized()) return;
     clearTimeout(saveBoundsTimer);
@@ -199,8 +218,19 @@ function createWindow() {
 
   mainWindow.on('move', queueBoundsSave);
   mainWindow.on('resize', queueBoundsSave);
-  mainWindow.on('show', refreshTrayMenu);
+  mainWindow.on('show', () => {
+    refreshTrayMenu();
+    requestRendererRefresh();
+  });
   mainWindow.on('hide', refreshTrayMenu);
+  mainWindow.on('restore', requestRendererRefresh);
+  mainWindow.on('focus', requestRendererRefresh);
+}
+
+function requestRendererRefresh() {
+  if (mainWindow && !mainWindow.webContents.isLoading()) {
+    mainWindow.webContents.send('quotahalo:refresh');
+  }
 }
 
 function commandLineValue(name) {
@@ -267,6 +297,13 @@ function toggleWindow() {
     createWindow();
     return;
   }
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+    requestRendererRefresh();
+    return;
+  }
   if (mainWindow.isVisible()) mainWindow.hide();
   else {
     mainWindow.show();
@@ -306,7 +343,9 @@ function updateSettings(patch) {
   settings = sanitizeSettings({ ...settings, ...patch, windowBounds: settings.windowBounds });
   saveSettings();
 
-  if (reader && oldSource !== settings.sourceDir) reader.setSourceDir(settings.sourceDir);
+  if (reader && oldSource !== settings.sourceDir) {
+    reader.setSourceDir(settings.sourceDir).catch((error) => console.error('Unable to change token source:', error));
+  }
   if (mainWindow) {
     mainWindow.setAlwaysOnTop(settings.alwaysOnTop);
     mainWindow.setOpacity(settings.opacity);
@@ -336,15 +375,15 @@ function registerIpc() {
   ipcMain.handle('quotahalo:reset-settings', () => {
     const bounds = settings.windowBounds;
     settings = { ...DEFAULT_SETTINGS, windowBounds: bounds };
-    reader?.setSourceDir(settings.sourceDir);
+    reader?.setSourceDir(settings.sourceDir).catch((error) => console.error('Unable to reset token source:', error));
     updateSettings(settings);
     setDisplayMode('full');
     return publicSettings();
   });
 
-  ipcMain.handle('quotahalo:get-snapshot', (_event, options = {}) => {
+  ipcMain.handle('quotahalo:get-snapshot', async (_event, options = {}) => {
     try {
-      return reader.snapshot({
+      return await reader.snapshot({
         sessionId: typeof options.sessionId === 'string' ? options.sessionId : null,
         force: Boolean(options.force),
       });
@@ -402,7 +441,16 @@ function registerIpc() {
   });
 }
 
+app.on('second-instance', () => {
+  if (!mainWindow) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+  requestRendererRefresh();
+});
+
 app.whenReady().then(() => {
+  if (!hasSingleInstanceLock) return;
   app.setAppUserModelId('com.sanoobis.quotahalo');
   loadSettings();
   const requestedMode = commandLineValue('display-mode');
@@ -411,7 +459,7 @@ app.whenReady().then(() => {
   if (['context-focus', 'equal'].includes(requestedMiniLayout)) settings.miniLayout = requestedMiniLayout;
   const requestedMiniContext = commandLineValue('mini-context');
   if (['true', 'false'].includes(requestedMiniContext)) settings.miniContext = requestedMiniContext === 'true';
-  reader = new TokenReader({ sourceDir: settings.sourceDir });
+  reader = new SnapshotService({ sourceDir: settings.sourceDir });
   registerIpc();
   createWindow();
   createTray();
@@ -424,6 +472,7 @@ app.whenReady().then(() => {
 
 app.on('before-quit', () => {
   isQuitting = true;
+  reader?.close().catch((error) => console.error('Unable to stop token worker:', error));
 });
 
 app.on('window-all-closed', () => {

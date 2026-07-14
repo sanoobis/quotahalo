@@ -19,6 +19,8 @@ QuotaHalo is a private, local Windows dashboard for live AI coding-session token
 - Drag the window from any non-interactive surface
 - Manual title-bar refresh with loading feedback
 - Always-on-top pin, system tray, remembered position, and adjustable opacity
+- Non-blocking background scans, lossless refresh queuing, and instant refresh after restore
+- Built-in `npm run health` diagnostic for local session-store performance
 - Midnight, graphite, and light themes with four accent colors
 - Configurable local sessions folder and refresh interval
 

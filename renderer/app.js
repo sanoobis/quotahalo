@@ -10,7 +10,9 @@ const state = {
   clockTimer: null,
   toastTimer: null,
   opacityTimer: null,
-  refreshing: false,
+  pendingRefresh: null,
+  refreshPromise: null,
+  lastGoodSnapshot: null,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -145,6 +147,10 @@ function bindEvents() {
       refresh({ force: true, notify: true });
     }
   });
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) refresh({ force: true });
+  });
 }
 
 function bindToggle(id, key) {
@@ -156,7 +162,11 @@ async function saveSetting(patch, notify = true) {
   applySettings(state.settings);
   startRefreshTimer();
   if (notify) showToast('Settings saved');
-  if (Object.hasOwn(patch, 'sourceDir')) await refresh({ force: true });
+  if (Object.hasOwn(patch, 'sourceDir')) {
+    state.snapshot = null;
+    state.lastGoodSnapshot = null;
+    await refresh({ force: true });
+  }
 }
 
 function applySettings(settings) {
@@ -205,25 +215,79 @@ function startRefreshTimer() {
   state.refreshTimer = window.setInterval(() => refresh(), state.settings.refreshMs);
 }
 
-async function refresh(options = {}) {
-  if (state.refreshing) return;
-  state.refreshing = true;
+function refresh(options = {}) {
+  if (state.refreshPromise && !options.force && !options.notify) return state.refreshPromise;
+  state.pendingRefresh = mergeRefreshOptions(state.pendingRefresh, options);
+  if (!state.refreshPromise) {
+    state.refreshPromise = runRefreshLoop().finally(() => {
+      state.refreshPromise = null;
+    });
+  }
+  return state.refreshPromise;
+}
+
+async function runRefreshLoop() {
   elements.refreshButton.classList.add('loading');
 
   try {
-    const snapshot = await api.getSnapshot({
-      sessionId: state.selectedSessionId,
-      force: Boolean(options.force),
-    });
-    state.snapshot = snapshot;
-    renderSnapshot(snapshot);
-    if (options.notify) showToast(snapshot.status === 'error' ? 'Refresh failed' : 'Usage refreshed');
-  } catch (error) {
-    renderError(error instanceof Error ? error.message : String(error));
+    while (state.pendingRefresh) {
+      const options = state.pendingRefresh;
+      state.pendingRefresh = null;
+      const requestedSessionId = state.selectedSessionId;
+
+      try {
+        const snapshot = await api.getSnapshot({
+          sessionId: requestedSessionId,
+          force: Boolean(options.force),
+        });
+
+        if (requestedSessionId !== state.selectedSessionId) {
+          state.pendingRefresh = mergeRefreshOptions(state.pendingRefresh, { force: true, notify: options.notify });
+          continue;
+        }
+
+        if (snapshot.status === 'error') {
+          showRefreshFailure(snapshot.error || 'Unable to scan Codex data', options.notify);
+          continue;
+        }
+
+        if (requestedSessionId && snapshot.current?.id !== requestedSessionId
+          && !snapshot.sessions.some((session) => session.id === requestedSessionId)) {
+          state.selectedSessionId = null;
+        }
+
+        state.snapshot = snapshot;
+        if (snapshot.current?.hasTokenData) state.lastGoodSnapshot = snapshot;
+        renderSnapshot(snapshot);
+        if (options.notify) showToast('Usage refreshed');
+      } catch (error) {
+        showRefreshFailure(error instanceof Error ? error.message : String(error), options.notify);
+      }
+    }
   } finally {
-    state.refreshing = false;
     elements.refreshButton.classList.remove('loading');
   }
+}
+
+function mergeRefreshOptions(current, next = {}) {
+  return {
+    force: Boolean(current?.force || next.force),
+    notify: Boolean(current?.notify || next.notify),
+  };
+}
+
+function showRefreshFailure(message, notify = false) {
+  if (state.lastGoodSnapshot?.current?.hasTokenData) {
+    state.snapshot = state.lastGoodSnapshot;
+    elements.statusDot.className = 'status-dot error';
+    elements.statusText.textContent = 'Showing last known data';
+    elements.lastUpdated.textContent = 'Refresh delayed';
+    elements.lastUpdated.title = message;
+    if (notify) showToast('Refresh delayed — keeping current data');
+    return;
+  }
+  renderError(message);
+  if (notify) showToast('Refresh failed');
 }
 
 function renderSnapshot(snapshot) {
@@ -301,7 +365,7 @@ function renderLimit(prefix, limit) {
   const reset = elements[`${prefix}Reset`];
 
   if (!limit) {
-    label.textContent = prefix === 'primary' ? 'Primary limit' : 'Secondary limit';
+    label.textContent = prefix === 'primary' ? '5 hour limit' : 'Weekly limit';
     percent.textContent = '—';
     track.style.width = '0%';
     remaining.textContent = 'Usage unavailable';
@@ -391,7 +455,7 @@ function renderSessions(sessions, currentId) {
 }
 
 async function selectSession(id) {
-  if (id === state.selectedSessionId || id === state.snapshot?.current?.id) return;
+  if (id === state.selectedSessionId) return;
   state.selectedSessionId = id;
   await refresh({ force: true });
 }

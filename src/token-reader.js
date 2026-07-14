@@ -5,8 +5,9 @@ const path = require('node:path');
 const os = require('node:os');
 
 const TAIL_BYTES = 4 * 1024 * 1024;
-const HEAD_BYTES = 1024 * 1024;
+const HEAD_BYTES = 64 * 1024;
 const MAX_RECENT_SESSIONS = 12;
+const DISCOVERY_INTERVAL_MS = 2_000;
 
 function defaultCodexHome() {
   return process.env.CODEX_HOME || path.join(os.homedir(), '.codex');
@@ -119,6 +120,61 @@ function normalizeRateLimits(rateLimits) {
   };
 }
 
+function mergeRateLimits(rateLimitSets) {
+  const available = (rateLimitSets || []).filter(Boolean);
+  if (!available.length) return null;
+  const windows = new Map();
+
+  for (const limits of available) {
+    for (const [role, window] of [['primary', limits.primary], ['secondary', limits.secondary]]) {
+      if (!window) continue;
+      const key = window.windowMinutes > 0 ? `minutes:${window.windowMinutes}` : `role:${role}`;
+      if (!windows.has(key)) windows.set(key, { role, window });
+    }
+  }
+
+  const ordered = [...windows.values()].sort((a, b) => {
+    const aMinutes = a.window.windowMinutes || (a.role === 'primary' ? 0 : Number.MAX_SAFE_INTEGER);
+    const bMinutes = b.window.windowMinutes || (b.role === 'primary' ? 0 : Number.MAX_SAFE_INTEGER);
+    return aMinutes - bMinutes;
+  });
+  let primary = null;
+  let secondary = null;
+
+  if (ordered.length === 1) {
+    const only = ordered[0];
+    if (only.window.windowMinutes >= 1440 || only.role === 'secondary') secondary = only.window;
+    else primary = only.window;
+  } else if (ordered.length > 1) {
+    primary = ordered[0].window;
+    secondary = ordered.at(-1).window;
+  }
+
+  const firstValue = (key) => available.find((limits) => limits[key] != null)?.[key] ?? null;
+  return {
+    planType: firstValue('planType'),
+    limitId: firstValue('limitId'),
+    reachedType: firstValue('reachedType'),
+    primary,
+    secondary,
+    credits: firstValue('credits'),
+  };
+}
+
+function activeRateLimits(rateLimits, nowSeconds = Date.now() / 1000) {
+  if (!rateLimits) return null;
+  const activeWindow = (window) => {
+    if (!window) return null;
+    return !window.resetsAt || window.resetsAt >= nowSeconds - 60 ? window : null;
+  };
+  const active = {
+    ...rateLimits,
+    primary: activeWindow(rateLimits.primary),
+    secondary: activeWindow(rateLimits.secondary),
+  };
+  return active.primary || active.secondary ? active : null;
+}
+
 function normalizeLimitWindow(window) {
   if (!window) return null;
   return {
@@ -193,6 +249,7 @@ function parseSessionFile(filePath, names = new Map(), stat = fs.statSync(filePa
   const id = meta.id || idFromName;
   const tokenRecords = parseTokenRecords(readTail(filePath));
   const latest = tokenRecords.at(-1) || null;
+  const latestRateLimits = mergeRateLimits(tokenRecords.toReversed().map((record) => record.rateLimits));
   const activity = tokenRecords.slice(-36).map((record) => ({
     timestamp: record.timestamp,
     contextTokens: record.last.totalTokens,
@@ -215,7 +272,7 @@ function parseSessionFile(filePath, names = new Map(), stat = fs.statSync(filePa
     total: latest?.total || normalizeUsage({}),
     last: latest?.last || normalizeUsage({}),
     contextWindow: latest?.contextWindow || 0,
-    rateLimits: latest?.rateLimits || null,
+    rateLimits: latestRateLimits,
     activity,
   };
 }
@@ -229,6 +286,7 @@ class TokenReader {
     this.lastDiscovery = 0;
     this.names = new Map();
     this.namesMtime = 0;
+    this.lastRateLimits = null;
   }
 
   setSourceDir(sourceDir) {
@@ -237,6 +295,7 @@ class TokenReader {
     this.knownFiles = [];
     this.fileCache.clear();
     this.lastDiscovery = 0;
+    this.lastRateLimits = null;
   }
 
   refreshNames() {
@@ -253,9 +312,13 @@ class TokenReader {
 
   discoverFiles(force = false) {
     const now = Date.now();
-    if (force || !this.knownFiles.length || now - this.lastDiscovery > 30_000) {
+    if (force || !this.knownFiles.length || now - this.lastDiscovery > DISCOVERY_INTERVAL_MS) {
       this.knownFiles = collectJsonlFiles(this.sourceDir);
       this.lastDiscovery = now;
+      const known = new Set(this.knownFiles);
+      for (const cachedPath of this.fileCache.keys()) {
+        if (!known.has(cachedPath)) this.fileCache.delete(cachedPath);
+      }
     }
     return this.knownFiles;
   }
@@ -297,9 +360,16 @@ class TokenReader {
       return value;
     });
 
-    const current = wantedId
-      ? sessions.find((session) => session.id === wantedId) || sessions[0]
-      : sessions[0];
+    let current = wantedId
+      ? sessions.find((session) => session.id === wantedId) || sessions.find((session) => session.hasTokenData) || sessions[0]
+      : sessions.find((session) => session.hasTokenData) || sessions[0];
+    const sharedRateLimits = mergeRateLimits([
+      activeRateLimits(current?.rateLimits),
+      ...sessions.filter((session) => session !== current).map((session) => activeRateLimits(session.rateLimits)),
+      activeRateLimits(this.lastRateLimits),
+    ]);
+    if (sharedRateLimits) this.lastRateLimits = sharedRateLimits;
+    if (current && sharedRateLimits) current = { ...current, rateLimits: sharedRateLimits };
     const activeCutoff = Date.now() - 30 * 60 * 1000;
     const recentWithData = sessions.filter((session) => session.hasTokenData);
 
@@ -321,11 +391,13 @@ class TokenReader {
 
 module.exports = {
   TokenReader,
+  activeRateLimits,
   collectJsonlFiles,
   defaultCodexHome,
   defaultSessionsPath,
   extractSessionId,
   loadThreadNames,
+  mergeRateLimits,
   normalizeRateLimits,
   normalizeUsage,
   parseSessionFile,
