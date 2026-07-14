@@ -33,10 +33,13 @@ test('renderer exposes all three display modes and a draggable app surface', () 
   assert.match(css, /\.app-shell[\s\S]*-webkit-app-region:\s*drag/);
   assert.match(css, /body\.mini/);
   assert.match(html, /id="miniLimitsSetting"/);
+  assert.match(html, /id="miniLimitsHint"/);
   assert.match(html, /id="miniLayoutSetting"/);
   assert.match(html, /id="miniContextSetting"/);
   assert.match(html, /id="pinButton"[\s\S]*id="refreshButton"[\s\S]*id="compactButton"/);
   assert.match(html, /5-hour \+ Weekly/);
+  assert.match(fs.readFileSync(path.join(root, 'renderer', 'styles.css'), 'utf8'), /\.mini-limit\.quota-unavailable/);
+  assert.match(fs.readFileSync(path.join(root, 'renderer', 'app.js'), 'utf8'), /Codex currently reports only a weekly window/);
   assert.match(html, /Equal indicators/);
   assert.match(css, /data-mini-layout="equal"/);
   assert.match(css, /data-mini-context="false"/);

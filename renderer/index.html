@@ -84,7 +84,7 @@
           </div>
         </section>
 
-        <section class="limits-card card" aria-label="Codex rate limits">
+        <section id="limitsCard" class="limits-card card" aria-label="Codex rate limits">
           <div class="card-heading">
             <div>
               <span class="section-kicker">Usage windows</span>
@@ -92,12 +92,12 @@
             </div>
             <span id="planBadge" class="plan-badge">CODEX</span>
           </div>
-          <div class="limit-row">
+          <div id="primaryLimitRow" class="limit-row">
             <div class="limit-label"><span id="primaryWindow">5 hour limit</span><strong id="primaryPercent">—</strong></div>
             <div class="limit-track"><span id="primaryTrack"></span></div>
             <div class="limit-foot"><span id="primaryRemaining">— remaining</span><span id="primaryReset">Reset time unavailable</span></div>
           </div>
-          <div class="limit-row secondary-limit">
+          <div id="secondaryLimitRow" class="limit-row secondary-limit">
             <div class="limit-label"><span id="secondaryWindow">Weekly limit</span><strong id="secondaryPercent">—</strong></div>
             <div class="limit-track"><span id="secondaryTrack"></span></div>
             <div class="limit-foot"><span id="secondaryRemaining">— remaining</span><span id="secondaryReset">Reset time unavailable</span></div>
@@ -200,7 +200,7 @@
               </div>
             </div>
             <label class="select-setting mini-limits-setting">
-              <span class="setting-label"><strong>Mini-mode limits</strong><small>Choose which quota windows appear</small></span>
+              <span class="setting-label"><strong>Mini-mode limits</strong><small id="miniLimitsHint">Choose which available quota windows appear</small></span>
               <select id="miniLimitsSetting">
                 <option value="both">5-hour + Weekly</option>
                 <option value="primary">5-hour only</option>

@@ -634,6 +634,11 @@ a,
   margin-top: 14px;
 }
 
+.limit-row.quota-unavailable,
+.mini-limit.quota-unavailable {
+  display: none !important;
+}
+
 .limit-label,
 .limit-foot {
   display: flex;
@@ -1464,6 +1469,10 @@ body.compact .limits-card {
   gap: 14px;
   margin-top: 7px;
   padding: 10px 12px;
+}
+
+body.compact .limits-card.single-limit {
+  grid-template-columns: 1fr;
 }
 
 body.compact .limits-card .card-heading {

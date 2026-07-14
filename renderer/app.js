@@ -36,6 +36,9 @@ const elements = {
   miniPrimaryLabel: $('miniPrimaryLabel'),
   miniSecondary: $('miniSecondary'),
   miniSecondaryLabel: $('miniSecondaryLabel'),
+  limitsCard: $('limitsCard'),
+  primaryLimitRow: $('primaryLimitRow'),
+  secondaryLimitRow: $('secondaryLimitRow'),
   planBadge: $('planBadge'),
   primaryWindow: $('primaryWindow'),
   primaryPercent: $('primaryPercent'),
@@ -174,7 +177,6 @@ async function saveSetting(patch, notify = true) {
 function applySettings(settings) {
   elements.app.dataset.theme = settings.theme;
   elements.app.dataset.accent = settings.accent;
-  elements.app.dataset.miniLimits = settings.miniLimits;
   elements.app.dataset.miniLayout = settings.miniContext ? settings.miniLayout : 'equal';
   elements.app.dataset.miniContext = String(settings.miniContext);
   document.body.classList.toggle('compact', settings.displayMode === 'compact');
@@ -209,6 +211,8 @@ function applySettings(settings) {
   document.querySelectorAll('[data-display-mode]').forEach((button) => {
     button.classList.toggle('active', button.dataset.displayMode === settings.displayMode);
   });
+
+  applyEffectiveMiniLimits(state.snapshot?.quota);
 }
 
 function startRefreshTimer() {
@@ -341,6 +345,7 @@ function renderSnapshot(snapshot) {
   renderMiniLimit('secondary', limits?.secondary, snapshot.quota?.weekly);
   renderLimit('primary', limits?.primary, snapshot.quota?.fiveHour);
   renderLimit('secondary', limits?.secondary, snapshot.quota?.weekly);
+  updateQuotaLayout(snapshot.quota);
 
   setMetric(elements.inputTokens, current.total.inputTokens);
   setMetric(elements.outputTokens, current.total.outputTokens);
@@ -372,6 +377,7 @@ function renderMiniLimit(prefix, limit, availability) {
 }
 
 function renderLimit(prefix, limit, availability) {
+  const row = elements[`${prefix}LimitRow`];
   const label = elements[`${prefix}Window`];
   const percent = elements[`${prefix}Percent`];
   const track = elements[`${prefix}Track`];
@@ -398,6 +404,67 @@ function renderLimit(prefix, limit, availability) {
   remaining.textContent = `${formatPercent(left)} remaining`;
   reset.dataset.resetAt = String(limit.resetsAt || '');
   reset.textContent = resetText(limit.resetsAt);
+}
+
+function updateQuotaLayout(quota = {}) {
+  const primaryUnavailable = quota.fiveHour === 'not-reported';
+  const secondaryUnavailable = quota.weekly === 'not-reported';
+  const hidePrimary = primaryUnavailable && !secondaryUnavailable;
+  const hideSecondary = secondaryUnavailable && !primaryUnavailable;
+  elements.primaryLimitRow.classList.toggle('quota-unavailable', hidePrimary);
+  elements.secondaryLimitRow.classList.toggle('quota-unavailable', hideSecondary);
+  elements.miniPrimary.parentElement.classList.toggle('quota-unavailable', hidePrimary);
+  elements.miniSecondary.parentElement.classList.toggle('quota-unavailable', hideSecondary);
+  elements.limitsCard.classList.toggle('single-limit', primaryUnavailable !== secondaryUnavailable);
+  applyEffectiveMiniLimits(quota);
+}
+
+function applyEffectiveMiniLimits(quota = {}) {
+  if (!state.settings) return;
+
+  const primaryUnavailable = quota?.fiveHour === 'not-reported';
+  const secondaryUnavailable = quota?.weekly === 'not-reported';
+  const preferred = state.settings.miniLimits;
+  let effective = preferred;
+
+  if (primaryUnavailable && !secondaryUnavailable && preferred !== 'secondary') effective = 'secondary';
+  if (secondaryUnavailable && !primaryUnavailable && preferred !== 'primary') effective = 'primary';
+
+  elements.app.dataset.miniLimits = effective;
+
+  const select = $('miniLimitsSetting');
+  const bothOption = select.querySelector('option[value="both"]');
+  const primaryOption = select.querySelector('option[value="primary"]');
+  const secondaryOption = select.querySelector('option[value="secondary"]');
+  primaryOption.disabled = primaryUnavailable;
+  secondaryOption.disabled = secondaryUnavailable;
+  bothOption.disabled = primaryUnavailable && secondaryUnavailable;
+  select.disabled = primaryUnavailable && secondaryUnavailable;
+
+  if (primaryUnavailable && !secondaryUnavailable) {
+    bothOption.textContent = 'All available (Weekly)';
+    primaryOption.textContent = '5-hour unavailable';
+    $('miniLimitsHint').textContent = 'Codex currently reports only a weekly window; QuotaHalo adapts automatically.';
+  } else if (secondaryUnavailable && !primaryUnavailable) {
+    bothOption.textContent = 'All available (5-hour)';
+    secondaryOption.textContent = 'Weekly unavailable';
+    $('miniLimitsHint').textContent = 'Codex currently reports only a 5-hour window; QuotaHalo adapts automatically.';
+  } else if (primaryUnavailable && secondaryUnavailable) {
+    bothOption.textContent = 'No quota windows available';
+    primaryOption.textContent = '5-hour unavailable';
+    secondaryOption.textContent = 'Weekly unavailable';
+    $('miniLimitsHint').textContent = 'Codex is not reporting an account quota window right now.';
+  } else {
+    bothOption.textContent = '5-hour + Weekly';
+    primaryOption.textContent = '5-hour only';
+    secondaryOption.textContent = 'Weekly only';
+    $('miniLimitsHint').textContent = 'Choose which available quota windows appear';
+  }
+
+  if (primaryUnavailable && secondaryUnavailable) select.value = preferred;
+  else if (preferred === 'primary' && primaryUnavailable) select.value = 'secondary';
+  else if (preferred === 'secondary' && secondaryUnavailable) select.value = 'primary';
+  else select.value = preferred;
 }
 
 function unavailableWindowText(prefix, availability) {

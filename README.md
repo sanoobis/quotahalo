@@ -11,12 +11,12 @@ QuotaHalo is a private, local Windows dashboard for live AI coding-session token
 - Current request context usage against the reported model context window
 - Session input, output, cached input, reasoning output, and total tokens
 - Remaining quota windows reported for the signed-in Codex account, with live countdowns and local reset times
-- Explicit `N/A` state when Codex does not report a 5-hour or Weekly window—never a misleading blank gauge
+- Quota-aware layouts hide an unavailable 5-hour or Weekly bucket when Codex reports only one window, while retaining an explicit `N/A` state when no account window is available
 - Recent context activity and session switching
 - Full, Compact, and space-efficient Mini window modes
 - Mini mode adapts its width: tightly spaced equal Context, 5-hour, and Weekly rings, or a wider context-focused layout
-- Choose whether Mini displays both quota windows or only the 5-hour/Weekly window
-- Hide the context indicator for a focused 5-hour + Weekly limits-only Mini panel
+- Choose whether Mini displays both quota windows or only the 5-hour/Weekly window; unavailable choices are disabled automatically
+- Hide the context indicator for a focused limits-only Mini panel
 - Drag the window from any non-interactive surface
 - Manual title-bar refresh with loading feedback
 - Always-on-top pin, system tray, remembered position, and adjustable opacity
