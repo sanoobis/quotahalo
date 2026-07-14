@@ -10,7 +10,8 @@ QuotaHalo is a private, local Windows dashboard for live AI coding-session token
 
 - Current request context usage against the reported model context window
 - Session input, output, cached input, reasoning output, and total tokens
-- Remaining 5-hour and Weekly quota capacity with live countdowns and local reset times
+- Remaining quota windows reported for the signed-in Codex account, with live countdowns and local reset times
+- Explicit `N/A` state when Codex does not report a 5-hour or Weekly window—never a misleading blank gauge
 - Recent context activity and session switching
 - Full, Compact, and space-efficient Mini window modes
 - Mini mode adapts its width: tightly spaced equal Context, 5-hour, and Weekly rings, or a wider context-focused layout
@@ -20,7 +21,7 @@ QuotaHalo is a private, local Windows dashboard for live AI coding-session token
 - Manual title-bar refresh with loading feedback
 - Always-on-top pin, system tray, remembered position, and adjustable opacity
 - Non-blocking background scans, lossless refresh queuing, and instant refresh after restore
-- Built-in `npm run health` diagnostic for local session-store performance
+- Built-in `npm run health` diagnostic for session-store performance and the live Codex quota feed
 - Midnight, graphite, and light themes with four accent colors
 - Configurable local sessions folder and refresh interval
 
@@ -28,9 +29,9 @@ The context card uses `last_token_usage`. Session metric cards use the cumulativ
 
 ## Privacy
 
-QuotaHalo operates entirely on your device. It does not include analytics, telemetry, accounts, or network calls.
+QuotaHalo does not include analytics, telemetry, or its own account system.
 
-Only session metadata and `token_count` events are passed from the Electron main process to the dashboard. Prompts, assistant responses, authentication files, and tool output are not exposed to the renderer or transmitted anywhere.
+Context and token totals come from local session metadata and `token_count` events. Quotas are refreshed through the installed Codex app-server's account rate-limit method, which may contact OpenAI using the Codex session already present on the device. QuotaHalo never reads authentication files, and prompts, assistant responses, credentials, and tool output are not exposed to the renderer or transmitted by QuotaHalo.
 
 By default, QuotaHalo reads:
 
@@ -55,6 +56,8 @@ npm start
 
 ```powershell
 npm test
+npm run health:strict
+npm run stress
 npm run dist
 ```
 
@@ -70,7 +73,7 @@ The Windows artifact is written to `release/QuotaHalo-<version>-x64.exe`.
 
 ## Compatibility
 
-QuotaHalo currently supports the local JSONL session format produced by Codex Desktop. That format is not a public stability contract and may change. Please open an issue if a Codex update breaks detection.
+QuotaHalo supports the local JSONL session format produced by Codex Desktop and the installed Codex app-server rate-limit method, with JSONL quota events as a fallback. Account plans do not always report the same windows; an unavailable window is labeled `N/A` with an explanation. Please open an issue if a Codex update breaks detection.
 
 ## Contributing
 

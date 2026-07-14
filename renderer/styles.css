@@ -1646,6 +1646,10 @@ body.mini .mini-side strong {
   font-weight: 620;
 }
 
+body.mini .mini-limit.unavailable {
+  opacity: .72;
+}
+
 .app-shell[data-mini-limits="primary"] .mini-secondary,
 .app-shell[data-mini-limits="secondary"] .mini-primary {
   display: none;
@@ -1751,6 +1755,16 @@ body.mini .app-shell[data-mini-layout="equal"] .mini-limit strong {
   font-size: 14px;
   font-weight: 630;
   letter-spacing: -.055em;
+}
+
+body.mini .app-shell[data-mini-layout="equal"] .mini-limit.unavailable {
+  background: conic-gradient(rgba(255, 255, 255, 0.12) 100%, rgba(255, 255, 255, 0.06) 0);
+  box-shadow: none;
+}
+
+body.mini .app-shell[data-mini-layout="equal"] .mini-limit.unavailable strong {
+  font-size: 10px;
+  letter-spacing: .02em;
 }
 
 @media (max-width: 420px) {

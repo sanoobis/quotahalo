@@ -76,6 +76,12 @@ class SnapshotService {
   }
 
   async close() {
+    if (this.closed) return;
+    try {
+      await this.request('close');
+    } catch {
+      // The worker may already be gone; termination below is still safe.
+    }
     this.closed = true;
     for (const request of this.pending.values()) {
       clearTimeout(request.timer);

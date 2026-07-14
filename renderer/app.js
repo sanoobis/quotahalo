@@ -33,7 +33,9 @@ const elements = {
   contextTrack: $('contextTrack'),
   lastTurn: $('lastTurn'),
   miniPrimary: $('miniPrimary'),
+  miniPrimaryLabel: $('miniPrimaryLabel'),
   miniSecondary: $('miniSecondary'),
+  miniSecondaryLabel: $('miniSecondaryLabel'),
   planBadge: $('planBadge'),
   primaryWindow: $('primaryWindow'),
   primaryPercent: $('primaryPercent'),
@@ -335,14 +337,10 @@ function renderSnapshot(snapshot) {
 
   const limits = current.rateLimits;
   elements.planBadge.textContent = formatPlan(limits?.planType);
-  const primaryLeft = quotaLeft(limits?.primary);
-  const secondaryLeft = quotaLeft(limits?.secondary);
-  elements.miniPrimary.textContent = primaryLeft === null ? '—' : formatPercent(primaryLeft);
-  elements.miniSecondary.textContent = secondaryLeft === null ? '—' : formatPercent(secondaryLeft);
-  elements.miniPrimary.parentElement.style.setProperty('--progress', (primaryLeft || 0).toFixed(2));
-  elements.miniSecondary.parentElement.style.setProperty('--progress', (secondaryLeft || 0).toFixed(2));
-  renderLimit('primary', limits?.primary);
-  renderLimit('secondary', limits?.secondary);
+  renderMiniLimit('primary', limits?.primary, snapshot.quota?.fiveHour);
+  renderMiniLimit('secondary', limits?.secondary, snapshot.quota?.weekly);
+  renderLimit('primary', limits?.primary, snapshot.quota?.fiveHour);
+  renderLimit('secondary', limits?.secondary, snapshot.quota?.weekly);
 
   setMetric(elements.inputTokens, current.total.inputTokens);
   setMetric(elements.outputTokens, current.total.outputTokens);
@@ -357,7 +355,23 @@ function renderSnapshot(snapshot) {
   updateTimeLabels();
 }
 
-function renderLimit(prefix, limit) {
+function renderMiniLimit(prefix, limit, availability) {
+  const value = elements[`mini${capitalize(prefix)}`];
+  const label = elements[`mini${capitalize(prefix)}Label`];
+  const ring = value.parentElement;
+  const left = quotaLeft(limit);
+  const fallbackLabel = prefix === 'primary' ? '5H' : 'WEEK';
+
+  label.textContent = limit ? formatWindowShort(limit.windowMinutes, fallbackLabel) : fallbackLabel;
+  value.textContent = left === null ? 'N/A' : formatPercent(left);
+  ring.style.setProperty('--progress', (left ?? 0).toFixed(2));
+  ring.classList.toggle('unavailable', left === null);
+  ring.title = left === null
+    ? unavailableWindowText(prefix, availability)
+    : `${formatWindow(limit.windowMinutes, prefix)}: ${formatPercent(left)} left. ${resetText(limit.resetsAt)}`;
+}
+
+function renderLimit(prefix, limit, availability) {
   const label = elements[`${prefix}Window`];
   const percent = elements[`${prefix}Percent`];
   const track = elements[`${prefix}Track`];
@@ -365,11 +379,12 @@ function renderLimit(prefix, limit) {
   const reset = elements[`${prefix}Reset`];
 
   if (!limit) {
-    label.textContent = prefix === 'primary' ? '5 hour limit' : 'Weekly limit';
-    percent.textContent = '—';
+    label.textContent = prefix === 'primary' ? '5 hour window' : 'Weekly window';
+    percent.textContent = availability === 'not-reported' ? 'Not reported' : 'Checking…';
     track.style.width = '0%';
-    remaining.textContent = 'Usage unavailable';
-    reset.textContent = 'Reset time unavailable';
+    track.classList.remove('warning');
+    remaining.textContent = unavailableWindowText(prefix, availability);
+    reset.textContent = availability === 'not-reported' ? 'No reset reported' : 'Waiting for Codex';
     reset.dataset.resetAt = '';
     return;
   }
@@ -383,6 +398,13 @@ function renderLimit(prefix, limit) {
   remaining.textContent = `${formatPercent(left)} remaining`;
   reset.dataset.resetAt = String(limit.resetsAt || '');
   reset.textContent = resetText(limit.resetsAt);
+}
+
+function unavailableWindowText(prefix, availability) {
+  const name = prefix === 'primary' ? '5-hour' : 'weekly';
+  return availability === 'not-reported'
+    ? `${name} window not reported by Codex`
+    : `Checking the ${name} window`;
 }
 
 function quotaLeft(limit) {
@@ -464,7 +486,8 @@ function updateTimeLabels() {
   if (!state.snapshot) return;
   elements.lastUpdated.textContent = `Synced ${relativeTime(state.snapshot.scannedAt)}`;
   document.querySelectorAll('[data-reset-at]').forEach((element) => {
-    element.textContent = resetText(Number(element.dataset.resetAt));
+    const resetAt = Number(element.dataset.resetAt);
+    if (resetAt > 0) element.textContent = resetText(resetAt);
   });
   const current = state.snapshot.current;
   if (current?.hasTokenData) {
@@ -555,6 +578,14 @@ function formatWindow(minutes, fallback) {
   if (minutes >= 60 && minutes % 60 === 0) return `${minutes / 60} hour limit`;
   if (minutes) return `${minutes} minute limit`;
   return fallback === 'primary' ? 'Primary limit' : 'Secondary limit';
+}
+
+function formatWindowShort(minutes, fallback) {
+  if (minutes === 10080) return 'WEEK';
+  if (minutes === 1440) return '24H';
+  if (minutes >= 60 && minutes % 60 === 0) return `${minutes / 60}H`;
+  if (minutes) return `${minutes}M`;
+  return fallback;
 }
 
 function resetText(epochSeconds) {

@@ -79,8 +79,8 @@
             <strong id="lastTurn">—</strong>
           </div>
           <div class="mini-side">
-            <div class="mini-limit mini-primary"><span>5H</span><strong id="miniPrimary">—</strong></div>
-            <div class="mini-limit mini-secondary"><span>WEEK</span><strong id="miniSecondary">—</strong></div>
+            <div class="mini-limit mini-primary"><span id="miniPrimaryLabel">5H</span><strong id="miniPrimary">N/A</strong></div>
+            <div class="mini-limit mini-secondary"><span id="miniSecondaryLabel">WEEK</span><strong id="miniSecondary">N/A</strong></div>
           </div>
         </section>
 
@@ -268,14 +268,14 @@
               </select>
             </label>
             <div class="source-setting">
-              <div class="setting-label"><strong>Codex sessions folder</strong><small>QuotaHalo reads token events only</small></div>
+              <div class="setting-label"><strong>Codex sessions folder</strong><small>Local source for context and token details</small></div>
               <div class="source-path"><svg><use href="#i-folder" /></svg><span id="sourcePath">—</span></div>
               <div class="source-actions">
                 <button id="changeSourceButton" class="secondary-button" type="button">Change folder</button>
                 <button id="openSourceButton" class="text-button" type="button">Open in Explorer</button>
               </div>
             </div>
-            <div class="privacy-note"><svg><use href="#i-info" /></svg><p>Everything stays on this device. Prompt and response content is never sent to the dashboard.</p></div>
+            <div class="privacy-note"><svg><use href="#i-info" /></svg><p>Quota refresh uses the installed Codex account service. QuotaHalo never reads credentials or sends prompt and response content.</p></div>
           </div>
 
           <div class="settings-group about-group">

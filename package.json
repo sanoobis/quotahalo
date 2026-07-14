@@ -1,6 +1,6 @@
 {
   "name": "quotahalo",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "A private, local token and quota monitor for AI coding sessions.",
   "main": "main.js",
   "author": "sanoobis",
@@ -18,6 +18,8 @@
     "dev": "electron . --dev",
     "test": "node --test",
     "health": "node scripts/health-check.js",
+    "health:strict": "node scripts/health-check.js --strict",
+    "stress": "node scripts/stress-check.js",
     "icon": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-icon.ps1",
     "pack": "electron-builder --dir",
     "dist": "electron-builder --win portable"

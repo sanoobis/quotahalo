@@ -45,7 +45,12 @@ test('renderer exposes all three display modes and a draggable app surface', () 
   assert.match(main, /EQUAL_MINI_MODE[^\n]*width:\s*202/);
   assert.match(main, /backgroundThrottling:\s*false/);
   assert.match(main, /SnapshotService/);
-  assert.match(fs.readFileSync(path.join(root, 'renderer', 'app.js'), 'utf8'), /pendingRefresh/);
-  assert.match(fs.readFileSync(path.join(root, 'renderer', 'app.js'), 'utf8'), /percent\.textContent = `\$\{formatPercent\(left\)\} left`/);
-  assert.match(fs.readFileSync(path.join(root, 'renderer', 'app.js'), 'utf8'), /return `\$\{relative\} · \$\{absolute\}`/);
+  const renderer = fs.readFileSync(path.join(root, 'renderer', 'app.js'), 'utf8');
+  assert.match(renderer, /pendingRefresh/);
+  assert.match(renderer, /percent\.textContent = `\$\{formatPercent\(left\)\} left`/);
+  assert.match(renderer, /return `\$\{relative\} · \$\{absolute\}`/);
+  assert.match(renderer, /value\.textContent = left === null \? 'N\/A'/);
+  assert.match(renderer, /window not reported by Codex/);
+  assert.match(renderer, /if \(resetAt > 0\) element\.textContent = resetText\(resetAt\)/);
+  assert.match(fs.readFileSync(path.join(root, 'src', 'codex-rate-limit-client.js'), 'utf8'), /account\/rateLimits\/read/);
 });

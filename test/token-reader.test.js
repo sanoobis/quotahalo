@@ -69,6 +69,20 @@ test('parseTokenRecords ignores unrelated and partial JSONL records', () => {
   assert.equal(records[0].rateLimits.primary.usedPercent, 23);
 });
 
+test('parseTokenRecords accepts camelCase quota fields from newer Codex formats', () => {
+  const line = JSON.parse(tokenLine());
+  line.payload.rate_limits = {
+    planType: 'prolite',
+    primary: { usedPercent: 31, windowDurationMins: 300, resetsAt: 2_000_000_000 },
+    secondary: { usedPercent: 8, windowDurationMins: 10080, resetsAt: 2_000_000_000 },
+  };
+  const [record] = parseTokenRecords(JSON.stringify(line));
+
+  assert.equal(record.rateLimits.planType, 'prolite');
+  assert.equal(record.rateLimits.primary.windowMinutes, 300);
+  assert.equal(record.rateLimits.secondary.windowMinutes, 10080);
+});
+
 test('readTail discards a partial first line', () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'quotahalo-tail-'));
   const file = path.join(directory, 'session.jsonl');
@@ -193,7 +207,11 @@ test('SnapshotService scans without blocking the caller event loop', async () =>
     JSON.stringify({ type: 'session_meta', payload: { id: SESSION_ID, cwd: 'D:\\Work\\Worker' } }),
     tokenLine(),
   ].join('\n'), 'utf8');
-  const service = new SnapshotService({ sourceDir: sessions, indexPath: path.join(directory, 'missing-index.jsonl') });
+  const service = new SnapshotService({
+    sourceDir: sessions,
+    indexPath: path.join(directory, 'missing-index.jsonl'),
+    enableLiveRateLimits: false,
+  });
 
   const pending = service.snapshot({ force: true });
   let yielded = false;

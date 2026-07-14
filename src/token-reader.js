@@ -111,11 +111,12 @@ function normalizeUsage(usage) {
 function normalizeRateLimits(rateLimits) {
   if (!rateLimits) return null;
   return {
-    planType: rateLimits.plan_type || null,
-    limitId: rateLimits.limit_id || null,
-    reachedType: rateLimits.rate_limit_reached_type || null,
-    primary: normalizeLimitWindow(rateLimits.primary),
-    secondary: normalizeLimitWindow(rateLimits.secondary),
+    planType: rateLimits.planType ?? rateLimits.plan_type ?? null,
+    limitId: rateLimits.limitId ?? rateLimits.limit_id ?? null,
+    limitName: rateLimits.limitName ?? rateLimits.limit_name ?? null,
+    reachedType: rateLimits.rateLimitReachedType ?? rateLimits.rate_limit_reached_type ?? null,
+    primary: normalizeLimitWindow(rateLimits.primary ?? rateLimits.primary_window),
+    secondary: normalizeLimitWindow(rateLimits.secondary ?? rateLimits.secondary_window),
     credits: rateLimits.credits || null,
   };
 }
@@ -154,6 +155,7 @@ function mergeRateLimits(rateLimitSets) {
   return {
     planType: firstValue('planType'),
     limitId: firstValue('limitId'),
+    limitName: firstValue('limitName'),
     reachedType: firstValue('reachedType'),
     primary,
     secondary,
@@ -178,9 +180,14 @@ function activeRateLimits(rateLimits, nowSeconds = Date.now() / 1000) {
 function normalizeLimitWindow(window) {
   if (!window) return null;
   return {
-    usedPercent: finiteNumber(window.used_percent),
-    windowMinutes: finiteNumber(window.window_minutes),
-    resetsAt: finiteNumber(window.resets_at),
+    usedPercent: finiteNumber(window.usedPercent ?? window.used_percent),
+    windowMinutes: finiteNumber(
+      window.windowMinutes
+      ?? window.windowDurationMins
+      ?? window.window_minutes
+      ?? (window.limit_window_seconds == null ? null : Number(window.limit_window_seconds) / 60),
+    ),
+    resetsAt: finiteNumber(window.resetsAt ?? window.resets_at ?? window.reset_at),
   };
 }
 
@@ -399,6 +406,7 @@ module.exports = {
   loadThreadNames,
   mergeRateLimits,
   normalizeRateLimits,
+  normalizeLimitWindow,
   normalizeUsage,
   parseSessionFile,
   parseTokenRecords,
